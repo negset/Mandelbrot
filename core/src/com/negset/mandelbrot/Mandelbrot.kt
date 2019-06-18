@@ -24,15 +24,14 @@ class Mandelbrot : ApplicationAdapter()
     {
         Gdx.input.inputProcessor = object : InputAdapter()
         {
-            override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean
-            {
-                when (button)
-                {
-                    Input.Buttons.LEFT -> zoomIn()
-                    Input.Buttons.RIGHT -> zoomOut()
-                }
-                return true
-            }
+            override fun touchDown(screenX: Int, screenY: Int,
+                                   pointer: Int, button: Int): Boolean =
+                    when (button)
+                    {
+                        Input.Buttons.LEFT -> zoomIn()
+                        Input.Buttons.RIGHT -> zoomOut()
+                        else -> false
+                    }
         }
         updateTexture()
     }
@@ -54,19 +53,21 @@ class Mandelbrot : ApplicationAdapter()
         return Complex(r, i)
     }
 
-    private fun zoomIn()
+    private fun zoomIn(): Boolean
     {
         centers.add(coordinateToComplex(Gdx.input.x, Gdx.input.y))
         size /= 2
         updateTexture()
+        return true
     }
 
-    private fun zoomOut()
+    private fun zoomOut(): Boolean
     {
-        if (centers.size == 1) return
+        if (centers.size == 1) return false
         centers.removeAt(centers.lastIndex)
         size *= 2
         updateTexture()
+        return true
     }
 
     private fun mandelbrot(c: Complex): Int
@@ -95,18 +96,20 @@ class Mandelbrot : ApplicationAdapter()
             {
                 val r = (center.r - size / 2) + size * x / PIXEL
                 val i = (center.i - size / 2) + size * y / PIXEL
-                when (val m = mandelbrot(Complex(r, i)))
+                val color = when (val m = mandelbrot(Complex(r, i)))
                 {
-                    -1 -> pixmap.setColor(Color.WHITE)
-                    else ->
-                    {
-                        pixmap.setColor(Color(1f, 0f, 0f, m / 10f))
-                    }
+                    -1 -> Color.BLACK
+                    else -> Color(0.3f + m / 20f,
+                            0.2f + m / 30f,
+                            0.1f + m / 40f,
+                            1f)
                 }
+                pixmap.setColor(color)
                 pixmap.drawPixel(x, y)
             }
         }
 
+        if (::texture.isInitialized) texture.dispose()
         texture = Texture(pixmap)
         pixmap.dispose()
     }
@@ -114,7 +117,11 @@ class Mandelbrot : ApplicationAdapter()
     override fun dispose()
     {
         batch.dispose()
+        texture.dispose()
     }
 }
 
 data class Complex(val r: Double, val i: Double)
+{
+    override fun toString() = "$r + $i i"
+}
